@@ -47,27 +47,135 @@ func main() {
 }
 
 func handleSignup(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "retweet", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Retweet Updated"})
 }
 
 func handleLogin(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "login", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "login Updated"})
 }
 
 func handleGoogleLogin(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "login/google", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "login/google Updated"})
 }
 
 func handleCreatePost(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "post", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "post Updated"})
 }
 
 func handleLikePost(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "Like", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Like Updated"})
 }
 
 func handleRetweetPost(c *gin.Context) {
-	// (略)
+	var request struct {
+		UserID string `json:"user_id"`
+		TeamID string `json:"team_id"`
+	}
+	if err := c.ShouldBind(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRef := client.Collection("users").Doc(request.UserID)
+	_, err := userRef.Update(context.Background(), []firestore.Update{
+		{Path: "retweet", Value: request.UserID},
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Retweet Updated"})
 }
 
 func handleFavoriteTeam(c *gin.Context) {
