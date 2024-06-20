@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dataSource name="@34.44.211.105">
+<dataSource name="hackathon@34.44.211.105">
   <database-model serializer="dbm" dbms="MYSQL" family-id="MYSQL" format-version="4.52">
     <root id="1">
       <DefaultCasing>exact</DefaultCasing>
@@ -925,7 +925,8 @@ hackathon|schema||uttc||UPDATE|G</Grants>
       <Charset>utf8mb4</Charset>
     </collation>
     <schema id="288" parent="1" name="hackathon">
-      <LastIntrospectionLocalTimestamp>2024-06-18.04:06:05</LastIntrospectionLocalTimestamp>
+      <Current>1</Current>
+      <LastIntrospectionLocalTimestamp>2024-06-20.14:31:01</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="289" parent="1" name="information_schema">
