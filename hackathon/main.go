@@ -1,201 +1,220 @@
 package main
 
 import (
-	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
-	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
-	"github.com/gin-gonic/gin"
-	"google.golang.org/api/option"
+	_ "github.com/go-sql-driver/mysql"
 )
 
-var client *firestore.Client
+// User struct represents the data structure for user information
+type User struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	TeamID   string `json:"team_id"`
+}
+
+// Post struct represents the data structure for post information
+type Post struct {
+	ID       int    `json:"id"`
+	UserID   int    `json:"user_id"`
+	Content  string `json:"content"`
+	PostedAt string `json:"posted_at"`
+}
+
+// Database connection
+var db *sql.DB
+
+func initDB() {
+	// MySQL connection
+	mysqlUser := os.Getenv("MYSQL_USER")
+	mysqlUserPwd := os.Getenv("MYSQL_PASSWORD")
+	mysqlDatabase := os.Getenv("MYSQL_DATABASE")
+
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s", mysqlUser, mysqlUserPwd, mysqlDatabase)
+	var err error
+	db, err = sql.Open("mysql", dataSourceName)
+	if err != nil {
+		log.Fatalf("error connecting to MySQL: %v\n", err)
+	}
+}
 
 func main() {
-	r := gin.Default()
+	initDB()
+	defer db.Close()
 
-	// Initialize Firebase
-	opt := option.WithCredentialsFile("path/to/your/serviceAccountKey.json")
-	app, err := firebase.NewApp(context.Background(), nil, opt)
-	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
-	}
+	http.HandleFunc("/signup", cors(handleSignup))
+	http.HandleFunc("/login", cors(handleLogin))
+	http.HandleFunc("/posts", cors(handleCreatePost))
+	http.HandleFunc("/posts/all", cors(handleGetPosts))
 
-	auth, err := app.Auth(context.Background())
-	if err != nil {
-		log.Fatalf("error getting Auth client: %v\n", err)
-	}
-
-	client, err = app.Firestore(context.Background())
-	if err != nil {
-		log.Fatalf("error getting Firestore client: %v\n", err)
-	}
-	defer client.Close()
-
-	// Routes
-	r.POST("/signup", handleSignup)
-	r.POST("/login", handleLogin)
-	r.POST("/login/google", handleGoogleLogin)
-	r.POST("/post", handleCreatePost)
-	r.POST("/like", handleLikePost)
-	r.POST("/retweet", handleRetweetPost)
-	r.POST("/favorite-team", handleFavoriteTeam) // 新しいルート
-
-	r.Run(":8080")
+	fmt.Println("Server running on localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func handleSignup(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// cors is a middleware function that handles CORS headers for all endpoints
+func cors(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "retweet", Value: request.UserID},
-	})
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		handler(w, r)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Retweet Updated"})
 }
 
-func handleLogin(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func handleSignup(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Request method: %s\n", r.Method)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "login", Value: request.UserID},
-	})
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		http.Error(w, "Error decoding request body: "+err.Error(), http.StatusBadRequest)
+		log.Println("Error decoding request body:", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "login Updated"})
+	log.Printf("Received user: %+v\n", user)
+
+	// Insert user into MySQL database
+	stmt, err := db.Prepare("INSERT INTO users (username, email, password, team_id) VALUES (?, ?, ?, ?)")
+	if err != nil {
+		http.Error(w, "Error preparing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.Username, user.Email, user.Password, user.TeamID)
+	if err != nil {
+		http.Error(w, "Error executing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error executing SQL statement:", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "User registered successfully")
 }
 
-func handleGoogleLogin(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Request method: %s\n", r.Method)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "login/google", Value: request.UserID},
-	})
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		http.Error(w, "Error decoding request body: "+err.Error(), http.StatusBadRequest)
+		log.Println("Error decoding request body:", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "login/google Updated"})
+	// MySQLデータベースからユーザーを検索
+	stmt, err := db.Prepare("SELECT username, email, team_id FROM users WHERE username = ? AND password = ?")
+	if err != nil {
+		http.Error(w, "Error preparing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	var dbUser User
+	err = stmt.QueryRow(user.Username, user.Password).Scan(&dbUser.Username, &dbUser.Email, &dbUser.TeamID)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		return
+	} else if err != nil {
+		http.Error(w, "Error executing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error executing SQL statement:", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dbUser)
 }
 
-func handleCreatePost(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func handleCreatePost(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Request method: %s\n", r.Method)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "post", Value: request.UserID},
-	})
+	var post Post
+	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		http.Error(w, "Error decoding request body: "+err.Error(), http.StatusBadRequest)
+		log.Println("Error decoding request body:", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "post Updated"})
+	stmt, err := db.Prepare("INSERT INTO posts (user_id, content) VALUES (?, ?)")
+	if err != nil {
+		http.Error(w, "Error preparing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(post.UserID, post.Content)
+	if err != nil {
+		http.Error(w, "Error executing SQL statement: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error executing SQL statement:", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Post created successfully")
 }
 
-func handleLikePost(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func handleGetPosts(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Request method: %s\n", r.Method)
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "Like", Value: request.UserID},
-	})
+	rows, err := db.Query("SELECT id, user_id, content, posted_at FROM posts")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		http.Error(w, "Error querying posts: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error querying posts:", err)
+		return
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		err := rows.Scan(&post.ID, &post.UserID, &post.Content, &post.PostedAt)
+		if err != nil {
+			http.Error(w, "Error scanning post: "+err.Error(), http.StatusInternalServerError)
+			log.Println("Error scanning post:", err)
+			return
+		}
+		posts = append(posts, post)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, "Error reading posts: "+err.Error(), http.StatusInternalServerError)
+		log.Println("Error reading posts:", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Like Updated"})
-}
-
-func handleRetweetPost(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.ShouldBind(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "retweet", Value: request.UserID},
-	})
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Retweet Updated"})
-}
-
-func handleFavoriteTeam(c *gin.Context) {
-	var request struct {
-		UserID string `json:"user_id"`
-		TeamID string `json:"team_id"`
-	}
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	userRef := client.Collection("users").Doc(request.UserID)
-	_, err := userRef.Update(context.Background(), []firestore.Update{
-		{Path: "favorite_team", Value: request.TeamID},
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Favorite team updated"})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
 }
