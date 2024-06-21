@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="@34.44.211.105" uuid="c56a8968-4ed1-4f21-b3fd-2156e03b8ab7">
+    <data-source source="LOCAL" name="@34.16.51.150" uuid="5593eae0-6658-4a83-93ab-d965fc0d20b2">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://34.44.211.105:3306</jdbc-url>
+      <jdbc-url>jdbc:mysql://34.16.51.150:3306</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="hackathon@localhost" uuid="bba0c578-0b3f-4a4c-8ece-877979792ea9">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://localhost:3308/hackathon</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

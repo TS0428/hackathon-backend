@@ -4,15 +4,22 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
+func loadEnv() {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+}
 func initDB() {
 	// DB接続のための準備
 	mysqlUser := os.Getenv("MYSQL_USER")
@@ -20,9 +27,13 @@ func initDB() {
 	mysqlHost := os.Getenv("MYSQL_HOST")
 	mysqlDatabase := os.Getenv("MYSQL_DATABASE")
 
-	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s", mysqlUser, mysqlPwd, mysqlHost, mysqlDatabase)
-	var err error
-	db, err = sql.Open("mysql", connStr)
+	log.Printf("MYSQL_USER: %s", mysqlUser)
+	log.Printf("MYSQL_PWD: %s", mysqlPwd)
+	log.Printf("MYSQL_HOST: %s", mysqlHost)
+	log.Printf("MYSQL_DATABASE: %s", mysqlDatabase)
+
+	connStr := fmt.Sprintf("%s:%s@%s/%s", mysqlUser, mysqlPwd, mysqlHost, mysqlDatabase)
+	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -36,7 +47,7 @@ func initDB() {
 
 func signupHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email    string `json:"email"`
+		Id       string `json:"id"`
 		Password string `json:"password"`
 	}
 
@@ -67,7 +78,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 func completeProfileHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
-		Email    string `json:"email"`
+		ID       string `json:"id"`
 		TeamID   string `json:"team_id"`
 	}
 
@@ -83,19 +94,27 @@ func completeProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.Exec("UPDATE users SET username = ?, team_id = ? WHERE email = ?", req.Username, req.TeamID, req.Email)
+	if len(req.ID) < 5 {
+		log.Printf("ID too short: %v", req.ID)
+		http.Error(w, "ID must be at least 5 characters", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec("UPDATE users SET username = ?, team_id = ? WHERE id = ?", req.Username, req.TeamID, req.ID)
 	if err != nil {
 		log.Printf("Error updating user profile: %v", err)
 		http.Error(w, "Failed to complete profile", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Profile completed successfully for: %v", req.Email)
+	log.Printf("Profile completed successfully for: %v", req.ID)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Profile completed successfully"))
 }
 
 func main() {
+
+	loadEnv()
 	initDB()
 
 	http.HandleFunc("/signup", signupHandler)
