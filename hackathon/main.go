@@ -3,17 +3,26 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	_ "github.com/go-sql-driver/mysql"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
 func initDB() {
+	// DB接続のための準備
+	mysqlUser := os.Getenv("MYSQL_USER")
+	mysqlPwd := os.Getenv("MYSQL_PWD")
+	mysqlHost := os.Getenv("MYSQL_HOST")
+	mysqlDatabase := os.Getenv("MYSQL_DATABASE")
+
+	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s", mysqlUser, mysqlPwd, mysqlHost, mysqlDatabase)
 	var err error
-	// Replace the placeholder values with your actual database credentials
-	db, err = sql.Open("mysql", "uttc:futyuusei69@tcp(34.44.211.105:3306)/hackathon")
+	db, err = sql.Open("mysql", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
