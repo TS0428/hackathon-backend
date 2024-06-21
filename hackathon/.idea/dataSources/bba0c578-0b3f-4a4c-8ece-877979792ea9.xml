@@ -884,26 +884,46 @@ hackathon|schema||uttc||UPDATE|G</Grants>
     </collation>
     <schema id="274" parent="1" name="hackathon">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-06-21.10:43:44</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-06-21.18:29:03</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="275" parent="1" name="information_schema">
       <CollationName>utf8_general_ci</CollationName>
     </schema>
     <user id="276" parent="1" name="uttc"/>
-    <table id="277" parent="274" name="user">
+    <table id="277" parent="274" name="users">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <column id="278" parent="277" name="email">
-      <DasType>varchar(50)|0s</DasType>
+    <column id="278" parent="277" name="id">
+      <DasType>varchar(255)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="279" parent="277" name="password">
-      <DasType>int|0s</DasType>
+    <column id="279" parent="277" name="id_token">
+      <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
+    <column id="280" parent="277" name="username">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <column id="281" parent="277" name="team_id">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+    </column>
+    <index id="282" parent="277" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="283" parent="277" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
   </database-model>
 </dataSource>

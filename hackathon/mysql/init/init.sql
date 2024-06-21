@@ -1,8 +1,6 @@
 create table user (
-    id char(26) NOT NULL primary key,
-    name varchar(50) NOT NULL,
-    age int(3) NOT NULL
+                      id VARCHAR(255) PRIMARY KEY,
+                      id_token TEXT NOT NULL,
+                      username VARCHAR(255) NOT NULL,
+                      team_id VARCHAR(255) NOT NULL
 );
-
-insert into user values ('00000000000000000000000001', 'hanako', 20);
-insert into user values ('00000000000000000000000002', 'taro', 30);
