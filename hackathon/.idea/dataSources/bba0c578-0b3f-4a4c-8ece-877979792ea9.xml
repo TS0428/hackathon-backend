@@ -884,43 +884,93 @@ hackathon|schema||uttc||UPDATE|G</Grants>
     </collation>
     <schema id="274" parent="1" name="hackathon">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-06-21.18:29:03</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-06-22.02:11:00</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="275" parent="1" name="information_schema">
       <CollationName>utf8_general_ci</CollationName>
     </schema>
     <user id="276" parent="1" name="uttc"/>
-    <table id="277" parent="274" name="users">
+    <table id="277" parent="274" name="casts">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <column id="278" parent="277" name="id">
-      <DasType>varchar(255)|0s</DasType>
+    <table id="278" parent="274" name="users">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <column id="279" parent="277" name="id">
+      <AutoIncrement>1</AutoIncrement>
+      <DasType>bigint|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="279" parent="277" name="id_token">
-      <DasType>text|0s</DasType>
+    <column id="280" parent="277" name="user_id">
+      <DasType>varchar(255)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="280" parent="277" name="username">
-      <DasType>varchar(255)|0s</DasType>
-      <NotNull>1</NotNull>
+    <column id="281" parent="277" name="content">
+      <DasType>text|0s</DasType>
       <Position>3</Position>
     </column>
-    <column id="281" parent="277" name="team_id">
+    <column id="282" parent="277" name="filter">
       <DasType>varchar(255)|0s</DasType>
-      <NotNull>1</NotNull>
       <Position>4</Position>
     </column>
-    <index id="282" parent="277" name="PRIMARY">
+    <column id="283" parent="277" name="photo_path">
+      <DasType>varchar(255)|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="284" parent="277" name="video_path">
+      <DasType>varchar(255)|0s</DasType>
+      <Position>6</Position>
+    </column>
+    <foreign-key id="285" parent="277" name="casts_ibfk_1">
+      <ColNames>user_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>users</RefTableName>
+    </foreign-key>
+    <index id="286" parent="277" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="283" parent="277" name="PRIMARY">
+    <index id="287" parent="277" name="user_id">
+      <ColNames>user_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="288" parent="277" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="289" parent="278" name="id">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="290" parent="278" name="id_token">
+      <DasType>text|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+    </column>
+    <column id="291" parent="278" name="username">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <column id="292" parent="278" name="team_id">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+    </column>
+    <index id="293" parent="278" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="294" parent="278" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
