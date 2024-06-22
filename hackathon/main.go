@@ -64,45 +64,52 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func completeProfileHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		IDToken  string `json:"idToken"`
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var users struct {
+		Id       string `json:"id"`
 		Username string `json:"username"`
-		ID       string `json:"id"`
 		TeamID   string `json:"team_id"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&users); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
-	if len(req.Username) < 3 {
-		log.Printf("Username too short: %v", req.Username)
-		http.Error(w, "Username must be at least 3 characters", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.ID) < 3 {
-		log.Printf("ID too short: %v", req.ID)
-		http.Error(w, "ID must be at least 3 characters", http.StatusBadRequest)
-		return
-	}
-
-	_, err := db.Exec("INSERT INTO users (id_token, username, id, team_id) VALUES (?, ?, ?, ?)", req.IDToken, req.Username, req.ID, req.TeamID)
+	_, err := db.Exec("UPDATE users SET username = ?, team_id = ? WHERE id = ?", users.Username, users.TeamID, users.Id)
 	if err != nil {
 		log.Printf("Error updating user profile: %v", err)
-		http.Error(w, "Failed to complete profile", http.StatusInternalServerError)
+		http.Error(w, "Failed to update user profile", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Profile completed successfully for: %v", req.ID)
+	log.Printf("User profile updated successfully: %s", users.Username)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Profile completed successfully"))
+	w.Write([]byte(fmt.Sprintf("User profile updated successfully: %s", users.Username)))
 }
 
 func getCastsHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT id, content, filter, photo_path, video_path, user_id FROM casts")
+	favoriteTeam := r.URL.Query().Get("favoriteTeam")
+	var rows *sql.Rows
+	var err error
+
+	if favoriteTeam != "" {
+		rows, err = db.Query(`
+			SELECT c.id, c.content, c.filter, c.photo_path, c.video_path, u.username, u.team_id
+			FROM casts c
+			JOIN users u ON c.user_id = u.id
+			WHERE u.favoriteTeam = ?`, favoriteTeam)
+	} else {
+		rows, err = db.Query(`
+			SELECT c.id, c.content, c.filter, c.photo_path, c.video_path, u.username, u.team_id
+			FROM casts c
+			JOIN users u ON c.user_id = u.id`)
+	}
+
 	if err != nil {
 		log.Printf("Error querying casts: %v", err)
 		http.Error(w, "Failed to fetch casts", http.StatusInternalServerError)
@@ -116,7 +123,10 @@ func getCastsHandler(w http.ResponseWriter, r *http.Request) {
 		Filter    string `json:"filter"`
 		PhotoPath string `json:"photoPath"`
 		VideoPath string `json:"videoPath"`
-		UserID    string `json:"userId"`
+		User      struct {
+			DisplayName  string `json:"displayName"`
+			FavoriteTeam string `json:"favoriteTeam"`
+		} `json:"user"`
 	}
 
 	for rows.Next() {
@@ -126,10 +136,13 @@ func getCastsHandler(w http.ResponseWriter, r *http.Request) {
 			Filter    string `json:"filter"`
 			PhotoPath string `json:"photoPath"`
 			VideoPath string `json:"videoPath"`
-			UserID    string `json:"userId"`
+			User      struct {
+				DisplayName  string `json:"displayName"`
+				FavoriteTeam string `json:"favoriteTeam"`
+			} `json:"user"`
 		}
 
-		if err := rows.Scan(&cast.ID, &cast.Content, &cast.Filter, &cast.PhotoPath, &cast.VideoPath, &cast.UserID); err != nil {
+		if err := rows.Scan(&cast.ID, &cast.Content, &cast.Filter, &cast.PhotoPath, &cast.VideoPath, &cast.User.DisplayName, &cast.User.FavoriteTeam); err != nil {
 			log.Printf("Error scanning cast: %v", err)
 			http.Error(w, "Failed to fetch casts", http.StatusInternalServerError)
 			return
@@ -143,6 +156,73 @@ func getCastsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error encoding response: %v", err)
 		http.Error(w, "Failed to fetch casts", http.StatusInternalServerError)
 	}
+}
+
+func likeCastHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestData struct {
+		ID int `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec(`UPDATE casts SET likes = likes + 1 WHERE id = ?`, requestData.ID)
+	if err != nil {
+		log.Printf("Error updating likes: %v", err)
+		http.Error(w, "Failed to update likes", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func replyCastHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestData struct {
+		ID      int    `json:"id"`
+		Content string `json:"content"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	var replies []string
+	err := db.QueryRow(`SELECT replies FROM casts WHERE id = ?`, requestData.ID).Scan(&replies)
+	if err != nil {
+		log.Printf("Error fetching replies: %v", err)
+		http.Error(w, "Failed to fetch replies", http.StatusInternalServerError)
+		return
+	}
+
+	replies = append(replies, requestData.Content)
+	repliesJSON, err := json.Marshal(replies)
+	if err != nil {
+		log.Printf("Error marshalling replies: %v", err)
+		http.Error(w, "Failed to update replies", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec(`UPDATE casts SET replies = ? WHERE id = ?`, repliesJSON, requestData.ID)
+	if err != nil {
+		log.Printf("Error updating replies: %v", err)
+		http.Error(w, "Failed to update replies", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func saveFile(fileHeader *multipart.FileHeader, destDir string) (string, error) {
@@ -229,7 +309,9 @@ func main() {
 
 	http.Handle("/complete-profile", enableCORS(http.HandlerFunc(completeProfileHandler)))
 	http.Handle("/casts", enableCORS(http.HandlerFunc(castHandler)))
-	http.Handle("/get-casts", enableCORS(http.HandlerFunc(getCastsHandler))) // ここを追加
+	http.Handle("/get-casts", enableCORS(http.HandlerFunc(getCastsHandler)))   // ここを追加
+	http.Handle("/like-cast", enableCORS(http.HandlerFunc(likeCastHandler)))   // CORSを有効にする
+	http.Handle("/reply-cast", enableCORS(http.HandlerFunc(replyCastHandler))) // CORSを有効にする
 
 	log.Println("Server started at :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
