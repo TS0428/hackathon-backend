@@ -61,8 +61,8 @@ func enableCORS(w http.ResponseWriter, r *http.Request) {
 }
 
 type UserRegisterReq struct {
-	UserName string `json: "user_name"`
-	Email    string `json: "email"`
+	UserName string `json:"username"`
+	Email    string `json:"email"`
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
@@ -74,9 +74,10 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("err in decode user")
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		_, err = db.Query("INSERT INTO users (user_name, email) VALUES (?, ?)", userReq.UserName, userReq.Email)
+		_, err = db.Query("INSERT INTO users (username, email) VALUES ( ?, ?)", userReq.UserName, userReq.Email)
 		if err != nil {
 			log.Printf("fail: insert user, %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -94,10 +95,10 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type CastReq struct {
-	UserId  int    `json: "user_id"`
-	Content string `json: "content"`
-	Likes   int    `json: "likes"`
-	Replies string `json: "replies"`
+	UserId  int    `json:"userid"`
+	Content string `json:"content"`
+	Likes   int    `json:"likes"`
+	Replies string `json:"replies"`
 }
 
 func castHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,12 +110,17 @@ func castHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("err in decode cast")
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		_, err = db.Query("INSERT INTO casts (user_id, content, likes, replies) VALUES (?, ?, ?, ?)", castReq.UserId, castReq.Content, castReq.Likes, castReq.Replies)
+		if castReq.Replies == "" {
+			castReq.Replies = "{}"
+		}
+
+		_, err = db.Query("INSERT INTO casts (userid, content, likes, replies) VALUES (?, ?, ?, ?)", castReq.UserId, castReq.Content, castReq.Likes, castReq.Replies)
 		if err != nil {
 			log.Printf("fail: insert cast, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -125,12 +131,11 @@ func castHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 }
 
 type LikesReq struct {
-	UserId int `json: "user_id"`
-	CastId int `json: "cast_id"`
+	UserId int `json:"user_id"`
+	CastId int `json:"cast_id"`
 }
 
 func likesHandler(w http.ResponseWriter, r *http.Request) {
@@ -199,9 +204,9 @@ func likesCountHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type RepliesReq struct {
-	UserId  int    `json: "user_id"`
-	CastId  int    `json: "cast_id"`
-	Content string `json: "content"`
+	UserId  int    `json:"user_id"`
+	CastId  int    `json:"cast_id"`
+	Content string `json:"content"`
 }
 
 func repliesHandler(w http.ResponseWriter, r *http.Request) {
@@ -291,10 +296,13 @@ func main() {
 	initDB()
 
 	http.HandleFunc("/user", userHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 	http.HandleFunc("/casts", castHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 	http.HandleFunc("/likes", likesHandler)
 	http.HandleFunc("/likes/count", likesCountHandler)
 	http.HandleFunc("/replies", repliesHandler)
+	http.HandleFunc("/replies", repliesReceiveHandler)
 
 	log.Println("Server started at :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
