@@ -166,42 +166,6 @@ func likesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func likesCountHandler(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w, r)
-	switch r.Method {
-	case http.MethodGet:
-		var likesReq LikesReq
-		err := json.NewDecoder(r.Body).Decode(&likesReq)
-		if err != nil {
-			log.Printf("err in decode likesReq: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM likes WHERE cast_id = ?", likesReq.CastId).Scan(&count)
-		if err != nil {
-			log.Printf("fail: db.QueryRow, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		response := map[string]int{"count": count}
-		jsonResponse, err := json.Marshal(response)
-		if err != nil {
-			log.Printf("fail: json.Marshal, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonResponse)
-	default:
-		log.Printf("fail: HTTP Method is %s\n", r.Method)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-}
 
 type RepliesReq struct {
 	UserId  int    `json:"user_id"`
@@ -238,59 +202,6 @@ func repliesHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func repliesReceiveHandler(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w, r)
-	switch r.Method {
-	case http.MethodGet:
-		var likesReq LikesReq
-		err := json.NewDecoder(r.Body).Decode(&likesReq)
-		if err != nil {
-			log.Printf("err in decode likesReq")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		rows, err := db.Query("SELECT user_id, cast_id, content FROM replies WHERE cast_id = ?", likesReq.CastId)
-		if err != nil {
-			log.Printf("fail: query replies, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		replies := make([]RepliesReq, 0)
-		for rows.Next() {
-			var u RepliesReq
-			if err := rows.Scan(&u.UserId, &u.CastId, &u.Content); err != nil {
-				log.Printf("fail: scan reply, %v\n", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			replies = append(replies, u)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Printf("rows err: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytes, err := json.Marshal(replies)
-		if err != nil {
-			log.Printf("fail: marshal response, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(bytes)
-	default:
-		log.Printf("fail: HTTP Method is %s\n", r.Method)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-}
-
 func main() {
 	loadEnv()
 	initDB()
@@ -300,9 +211,9 @@ func main() {
 	http.HandleFunc("/casts", castHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	http.HandleFunc("/likes", likesHandler)
-	http.HandleFunc("/likes/count", likesCountHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 	http.HandleFunc("/replies", repliesHandler)
-	http.HandleFunc("/replies", repliesReceiveHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	log.Println("Server started at :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
