@@ -20,7 +20,7 @@ func loadEnv() {
 	if err != nil {
 		fmt.Println("Error loading .env file")
 	}
-}
+} //
 
 func initDB() {
 	mysqlUser := os.Getenv("MYSQL_USER")
