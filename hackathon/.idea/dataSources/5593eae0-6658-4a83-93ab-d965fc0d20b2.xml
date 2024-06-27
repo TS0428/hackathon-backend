@@ -925,7 +925,7 @@ hackathon|schema||uttc||UPDATE|G</Grants>
       <Charset>utf8mb4</Charset>
     </collation>
     <schema id="288" parent="1" name="hackathon">
-      <LastIntrospectionLocalTimestamp>2024-06-21.05:56:26</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-06-23.04:39:26</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="289" parent="1" name="information_schema">
@@ -940,17 +940,17 @@ hackathon|schema||uttc||UPDATE|G</Grants>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
     <column id="293" parent="292" name="id">
-      <DasType>char(26)|0s</DasType>
+      <DasType>int|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="294" parent="292" name="name">
-      <DasType>varchar(50)|0s</DasType>
+    <column id="294" parent="292" name="username">
+      <DasType>varchar(100)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="295" parent="292" name="age">
-      <DasType>int|0s</DasType>
+    <column id="295" parent="292" name="email">
+      <DasType>varchar(100)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
