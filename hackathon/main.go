@@ -97,17 +97,16 @@ func userSelectHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		UserName := r.URL.Query().Get("user_name")
-		Email := r.URL.Query().Get("email")
+		Email := r.URL.Query().Get("email") // クエリパラメータからemailを取得
 
-		if UserName == "" || Email == "" {
+		if Email == "" {
 			log.Printf("missing query parameters")
 			http.Error(w, "missing query parameters", http.StatusBadRequest)
 			return
 		}
 
 		var user UserRegisterReq
-		err := db.QueryRow("SELECT id, user_name FROM users WHERE user_name = ? AND email = ?", UserName, Email).Scan(&user.Id, &user.UserName)
+		err := db.QueryRow("SELECT id, user_name FROM users WHERE email = ?", Email).Scan(&user.Id, &user.UserName) // クエリパラメータのemailを使用してデータベースからユーザー情報を取得
 		if err != nil {
 			log.Printf("fail: select user, %v\n", err)
 			http.Error(w, "Failed to select user", http.StatusInternalServerError)
