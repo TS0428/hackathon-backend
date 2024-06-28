@@ -141,10 +141,11 @@ type TweetReq struct {
 }
 
 type Reply struct {
-	Id      int    `json:"id"`
-	UserId  int    `json:"user_id"`
-	TweetId int    `json:"tweet_id"`
-	Content string `json:"content"`
+	Id       int    `json:"id"`
+	UserId   int    `json:"user_id"`
+	TweetId  int    `json:"tweet_id"`
+	Content  string `json:"content"`
+	UserName string `json:"user_name"`
 }
 
 func tweetHandler(w http.ResponseWriter, r *http.Request) {
@@ -154,10 +155,15 @@ func tweetHandler(w http.ResponseWriter, r *http.Request) {
 		var tweetReq TweetReq
 		err := json.NewDecoder(r.Body).Decode(&tweetReq)
 		if err != nil {
-			log.Printf("err in decode cast: %v\n", err)
+			log.Printf("err in decode tweet: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf("Failed to decode JSON: %v", err)))
 			return
+		}
+
+		// replies が nil の場合は空のスライスに設定
+		if tweetReq.Replies == nil {
+			tweetReq.Replies = []Reply{}
 		}
 
 		repliesJSON, err := json.Marshal(tweetReq.Replies)
@@ -187,8 +193,7 @@ func tweetShowHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w, r)
 	switch r.Method {
 	case http.MethodGet:
-
-		rows, err := db.Query("SELECT id, user_name, user_id, content, replies FROM tweets")
+		rows, err := db.Query("SELECT id, user_name, user_id, content, replies, likes FROM tweets")
 		if err != nil {
 			log.Printf("fail: db.Query, %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -205,14 +210,15 @@ func tweetShowHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var tweet TweetReq
 			var repliesJSON []byte
-			if err := rows.Scan(&tweet.Id, &tweet.UserName, &tweet.UserId, &tweet.Content, &tweet.Replies); err != nil {
+			if err := rows.Scan(&tweet.Id, &tweet.UserName, &tweet.UserId, &tweet.Content, &repliesJSON, &tweet.Likes); err != nil {
 				log.Printf("fail: rows.Scan, %v\n", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			if len(repliesJSON) > 0 {
+			if len(repliesJSON) > 0 && string(repliesJSON) != "{}" {
 				var replies []Reply
+				log.Printf("repliesJSON: %s", string(repliesJSON))
 				if err := json.Unmarshal(repliesJSON, &replies); err != nil {
 					log.Printf("fail: json.Unmarshal, %v\n", err)
 					w.WriteHeader(http.StatusInternalServerError)
@@ -255,35 +261,83 @@ func repliesHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("err in decode cast")
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		_, err = db.Query("INSERT INTO replies (user_id, tweet_id, content) VALUES (?, ?, ?)", repliesReq.UserId, repliesReq.TweetId, repliesReq.Content)
-
+		tx, err := db.Begin()
 		if err != nil {
-			log.Printf("fail: query replies, %v\n", err)
+			log.Printf("fail: begin transaction, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Insert new reply
+		_, err = tx.Exec("INSERT INTO replies (user_id, tweet_id, content, user_name) VALUES (?, ?, ?, ?)", repliesReq.UserId, repliesReq.TweetId, repliesReq.Content, repliesReq.UserName)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: insert reply, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Get updated replies for the tweet
+		var replies []Reply
+		rows, err := tx.Query("SELECT id, user_id, tweet_id, content, user_name FROM replies WHERE tweet_id = ?", repliesReq.TweetId)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: select replies, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var reply Reply
+			if err := rows.Scan(&reply.Id, &reply.UserId, &reply.TweetId, &reply.Content, &reply.UserName); err != nil {
+				tx.Rollback()
+				log.Printf("fail: scan reply, %v\n", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			replies = append(replies, reply)
+		}
+
+		// Convert replies to JSON
+		repliesJSON, err := json.Marshal(replies)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: marshal replies, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Update the tweet with the new replies JSON
+		_, err = tx.Exec("UPDATE tweets SET replies = ? WHERE id = ?", repliesJSON, repliesReq.TweetId)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: update tweet replies, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			tx.Rollback()
+			log.Printf("fail: commit transaction, %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		return
 	default:
 		log.Printf("fail: HTTP Method is %s\n", r.Method)
 		w.WriteHeader(http.StatusBadRequest)
-		return
 	}
-
 }
 
 type LikesReq struct {
-	Id      int `json:"id"`
 	UserId  int `json:"user_id"`
 	TweetId int `json:"tweet_id"`
-}
-
-type LikesCount struct {
-	TweetId int `json:"tweet_id"`
-	Count   int `json:"count"`
 }
 
 func likesHandler(w http.ResponseWriter, r *http.Request) {
@@ -293,66 +347,44 @@ func likesHandler(w http.ResponseWriter, r *http.Request) {
 		var likesReq LikesReq
 		err := json.NewDecoder(r.Body).Decode(&likesReq)
 		if err != nil {
-			log.Printf("err in decode cast")
+			log.Printf("err in decode cast: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		_, err = db.Query("INSERT INTO likes (user_id, cast_id) VALUES (?, ?)", likesReq.UserId, likesReq.TweetId)
-
+		tx, err := db.Begin()
 		if err != nil {
-			log.Printf("fail: post likes, %v\n", err)
+			log.Printf("fail: begin transaction, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		_, err = tx.Exec("INSERT INTO likes (user_id, tweet_id) VALUES (?, ?)", likesReq.UserId, likesReq.TweetId)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: insert into likes, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		_, err = tx.Exec("UPDATE tweets SET likes = likes + 1 WHERE id = ?", likesReq.TweetId)
+		if err != nil {
+			tx.Rollback()
+			log.Printf("fail: update likes, %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.Printf("fail: commit transaction, %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		return
-	default:
-		log.Printf("fail: HTTP Method is %s\n", r.Method)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-}
-
-func likesCountHandler(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w, r)
-	switch r.Method {
-	case http.MethodGet:
-		rows, err := db.Query("SELECT tweet_id, COUNT(*) as count FROM likes GROUP BY tweet_id")
-		if err != nil {
-			log.Printf("fail: db.Query, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		var likesCounts []LikesCount
-		for rows.Next() {
-			var likesCount LikesCount
-			if err := rows.Scan(&likesCount.TweetId, &likesCount.Count); err != nil {
-				log.Printf("fail: rows.Scan, %v\n", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			likesCounts = append(likesCounts, likesCount)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Printf("fail: rows.Err, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		response, err := json.Marshal(likesCounts)
-		if err != nil {
-			log.Printf("fail: json.Marshal, %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(response)
+	case http.MethodOptions: // ここにOPTIONSメソッドの処理を追加
+		w.WriteHeader(http.StatusOK)
 	default:
 		log.Printf("fail: HTTP Method is %s\n", r.Method)
 		w.WriteHeader(http.StatusBadRequest)
@@ -368,7 +400,6 @@ func main() {
 	http.HandleFunc("/tweets", tweetHandler)
 	http.HandleFunc("/tweets/show", tweetShowHandler)
 	http.HandleFunc("/likes", likesHandler)
-	http.HandleFunc("/likes/count", likesCountHandler)
 	http.HandleFunc("/replies", repliesHandler)
 
 	log.Println("Server started at :8080")
