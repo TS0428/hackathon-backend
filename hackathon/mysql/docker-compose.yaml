@@ -1,0 +1,46 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0.28
+    platform: linux/amd64
+    container_name: hackathon-db
+    ports:
+      - "3308:3308"
+    expose:
+      - 3308
+    command: --port 3308
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_PASSWORD: futyuusei69
+      MYSQL_DATABASE: hackathon
+      MYSQL_USER: uttc
+      TZ: "Asia/Tokyo"
+    volumes:
+      - type: volume
+        source: mysql-data
+        target: /var/lib/mysql
+      - type: bind
+        source: ./init
+        target: /docker-entrypoint-initdb.d
+    networks:
+      - app-net
+networks:
+  app-net:
+    driver: bridge
+volumes:
+  mysql-data:
+    name: mysql-volume
+
+
+
+
+
+
+
+
+
+
+
+
+
+

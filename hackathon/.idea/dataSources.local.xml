@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="GO-241.17011.92">
+    <data-source name="@34.16.51.150" uuid="5593eae0-6658-4a83-93ab-d965fc0d20b2">
+      <database-info product="MySQL" version="8.0.31-google" jdbc-version="4.2" driver-name="MySQL Connector/J" driver-version="mysql-connector-j-8.2.0 (Revision: 06a1f724497fd81c6a659131fda822c9e5085b6c)" dbms="MYSQL" exact-version="8.0.31" exact-driver-version="8.2">
+        <extra-name-characters>#@</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+        <jdbc-catalog-is-schema>true</jdbc-catalog-is-schema>
+      </database-info>
+      <case-sensitivity plain-identifiers="exact" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>uttc</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="schema">
+            <name qname="@" />
+            <name qname="hackathon" />
+          </node>
+        </introspection-scope>
+      </schema-mapping>
+      <ssl-config use-ide-store="true" use-java-store="true" use-system-store="true">
+        <ca-cert>$USER_HOME$/Downloads/server-ca.pem</ca-cert>
+        <client-cert>$USER_HOME$/Downloads/client-cert.pem</client-cert>
+        <client-key>$USER_HOME$/Downloads/client-key.pem</client-key>
+        <enabled>true</enabled>
+        <mode>REQUIRE</mode>
+      </ssl-config>
+    </data-source>
+    <data-source name="hackathon@localhost" uuid="1444e4da-df18-40ea-85e9-04fe3707b4b2">
+      <database-info product="MySQL" version="8.0.28" jdbc-version="4.2" driver-name="MySQL Connector/J" driver-version="mysql-connector-j-8.2.0 (Revision: 06a1f724497fd81c6a659131fda822c9e5085b6c)" dbms="MYSQL" exact-version="8.0.28" exact-driver-version="8.2">
+        <extra-name-characters>#@</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+        <jdbc-catalog-is-schema>true</jdbc-catalog-is-schema>
+      </database-info>
+      <case-sensitivity plain-identifiers="exact" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>uttc</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="schema" qname="@" />
+        </introspection-scope>
+      </schema-mapping>
+    </data-source>
+  </component>
+</project>
