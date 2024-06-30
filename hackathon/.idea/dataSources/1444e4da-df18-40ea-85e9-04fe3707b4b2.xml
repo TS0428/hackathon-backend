@@ -884,22 +884,22 @@ hackathon|schema||uttc||UPDATE|G</Grants>
     </collation>
     <schema id="274" parent="1" name="hackathon">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-06-24.06:19:10</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-06-29.01:38:38</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="275" parent="1" name="information_schema">
       <CollationName>utf8_general_ci</CollationName>
     </schema>
     <user id="276" parent="1" name="uttc"/>
-    <table id="277" parent="274" name="casts">
+    <table id="277" parent="274" name="likes">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="278" parent="274" name="likes">
+    <table id="278" parent="274" name="replies">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="279" parent="274" name="replies">
+    <table id="279" parent="274" name="tweets">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
@@ -908,119 +908,156 @@ hackathon|schema||uttc||UPDATE|G</Grants>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
     <column id="281" parent="277" name="id">
-      <AutoIncrement>6</AutoIncrement>
+      <AutoIncrement>8</AutoIncrement>
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="282" parent="277" name="likes">
-      <DasType>int|0s</DasType>
-      <DefaultExpression>0</DefaultExpression>
-      <Position>2</Position>
-    </column>
-    <column id="283" parent="277" name="replies">
-      <DasType>json|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <column id="284" parent="277" name="user_id">
+    <column id="282" parent="277" name="user_id">
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
-      <Position>4</Position>
+      <Position>2</Position>
     </column>
-    <column id="285" parent="277" name="content">
-      <DasType>varchar(140)|0s</DasType>
+    <column id="283" parent="277" name="tweet_id">
+      <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
-      <Position>5</Position>
+      <Position>3</Position>
     </column>
+    <foreign-key id="284" parent="277" name="likes_users_FK">
+      <ColNames>user_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>users</RefTableName>
+    </foreign-key>
+    <foreign-key id="285" parent="277" name="likes_tweets_FK">
+      <ColNames>tweet_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>tweets</RefTableName>
+    </foreign-key>
     <index id="286" parent="277" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="287" parent="277" name="PRIMARY">
-      <NameSurrogate>1</NameSurrogate>
-      <Primary>1</Primary>
-      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
-    </key>
-    <column id="288" parent="278" name="id">
-      <AutoIncrement>4</AutoIncrement>
-      <DasType>bigint unsigned|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-    </column>
-    <column id="289" parent="278" name="user_id">
-      <DasType>bigint unsigned|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-    </column>
-    <column id="290" parent="278" name="cast_id">
-      <DasType>bigint unsigned|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-    </column>
-    <index id="291" parent="278" name="PRIMARY">
-      <ColNames>id</ColNames>
+    <index id="287" parent="277" name="likes_users_FK">
+      <ColNames>user_id</ColNames>
       <Type>btree</Type>
-      <Unique>1</Unique>
     </index>
-    <key id="292" parent="278" name="PRIMARY">
+    <index id="288" parent="277" name="likes_tweets_FK">
+      <ColNames>tweet_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="289" parent="277" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="293" parent="279" name="id">
-      <AutoIncrement>6</AutoIncrement>
+    <column id="290" parent="278" name="id">
+      <AutoIncrement>8</AutoIncrement>
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="294" parent="279" name="cast_id">
+    <column id="291" parent="278" name="tweet_id">
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="295" parent="279" name="user_id">
+    <column id="292" parent="278" name="user_id">
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
-    <column id="296" parent="279" name="content">
+    <column id="293" parent="278" name="content">
       <DasType>varchar(300)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>4</Position>
     </column>
-    <index id="297" parent="279" name="PRIMARY">
+    <column id="294" parent="278" name="user_name">
+      <DasType>varchar(100)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+    </column>
+    <index id="295" parent="278" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="298" parent="279" name="PRIMARY">
+    <key id="296" parent="278" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="299" parent="280" name="id">
-      <AutoIncrement>19</AutoIncrement>
+    <column id="297" parent="279" name="id">
+      <AutoIncrement>14</AutoIncrement>
       <DasType>bigint unsigned|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="300" parent="280" name="email">
-      <DasType>varchar(100)|0s</DasType>
-      <NotNull>1</NotNull>
+    <column id="298" parent="279" name="likes">
+      <DasType>int|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <Position>2</Position>
     </column>
-    <column id="301" parent="280" name="user_name">
-      <DasType>varchar(100)|0s</DasType>
-      <NotNull>1</NotNull>
+    <column id="299" parent="279" name="replies">
+      <DasType>json|0s</DasType>
       <Position>3</Position>
     </column>
-    <index id="302" parent="280" name="PRIMARY">
+    <column id="300" parent="279" name="user_id">
+      <DasType>bigint unsigned|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+    </column>
+    <column id="301" parent="279" name="content">
+      <DasType>varchar(140)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+    </column>
+    <column id="302" parent="279" name="user_name">
+      <DasType>varchar(100)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+    </column>
+    <foreign-key id="303" parent="279" name="tweets_users_FK">
+      <ColNames>user_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>users</RefTableName>
+    </foreign-key>
+    <index id="304" parent="279" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="303" parent="280" name="PRIMARY">
+    <index id="305" parent="279" name="tweets_users_FK">
+      <ColNames>user_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="306" parent="279" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="307" parent="280" name="id">
+      <AutoIncrement>42</AutoIncrement>
+      <DasType>bigint unsigned|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="308" parent="280" name="email">
+      <DasType>varchar(100)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+    </column>
+    <column id="309" parent="280" name="user_name">
+      <DasType>varchar(100)|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <index id="310" parent="280" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="311" parent="280" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
